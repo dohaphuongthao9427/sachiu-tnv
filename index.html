@@ -226,11 +226,13 @@ const canEditCt = id => isQL() || splitU(prog(id).nguoi_kiem_tra).includes(B().m
 const canReview = t => !!t && (canEditCt(t.ct_id) || splitU(t.nguoi_kiem_tra).includes(B().me.username));
 
 // ======================= API ============================
-async function api(action, data){
+async function api(action, data, retried){
   busy(true);
   try{
     const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action, token: S.token, data: data || {} }) });
-    const j = await r.json();
+    let j = await r.json();
+    // Thỉnh thoảng Google trả về trang doGet thay vì kết quả: thử lại 1 lần
+    if(j.ok && j.data === undefined && j.msg && !retried) return api(action, data, true);
     if(!j.ok){
       if(j.error === 'SESSION_EXPIRED'){ logout(true); throw new Error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại'); }
       if(j.error === 'MUST_CHANGE_PW'){ renderChangePw(true); const e = new Error('Bạn cần đổi mật khẩu trước'); e.code = 'PW'; throw e; }
@@ -249,7 +251,7 @@ async function act(action, data, opt){
   if(opt.optimistic){ S.boot = JSON.parse(JSON.stringify(S.boot)); opt.optimistic(S.boot); render(); }
   try{
     const d = await api(action, data);
-    if(d && d.boot){ S.boot = d.boot; S.lastLoad = Date.now(); S.sumOther = null; }
+    if(d && d.boot){ S.boot = d.boot; S.lastLoad = Date.now(); S.sumOther = null; saveBoot(); }
     render();
     if(opt.msg) toast(opt.msg);
     return d;
@@ -257,8 +259,14 @@ async function act(action, data, opt){
     S.boot = prev; render(); toast(e.message, 'err'); throw e;
   }
 }
+// Lưu dữ liệu lần trước để lần mở sau hiện ngay, rồi cập nhật ngầm
+function saveBoot(){ LS.set('sachiu_boot', S.boot && S.token ? JSON.stringify({ t: S.token, b: S.boot }) : null); }
 async function load(silent){
-  try{ const d = await api('bootstrap'); S.boot = d; S.lastLoad = Date.now(); render(); }
+  try{
+    const d = await api('bootstrap'); S.boot = d; S.lastLoad = Date.now(); saveBoot();
+    // Đang gõ dở trong ô thì chờ rời ô rồi mới vẽ lại, tránh mất chữ
+    if(silent && document.activeElement && document.activeElement.matches('input,textarea,select')) S.pendingRender = true; else render();
+  }
   catch(e){ if(e.code === 'PW') return; if(!silent) toast(e.message, 'err'); if(!S.boot && S.token) renderLogin(e.message); }
 }
 
@@ -282,7 +290,7 @@ function renderLogin(err){
       const d = await api('login', { username: u, password: p });
       S.token = d.token; LS.set('sachiu_token', d.token);
       if(d.mustChange){ S.pwOld = p; renderChangePw(true); }
-      else { S.boot = d.boot; S.lastLoad = Date.now(); render(); }
+      else { S.boot = d.boot; S.lastLoad = Date.now(); saveBoot(); render(); }
     }catch(err){ $('#le').textContent = err.message; $('#lb').disabled = false; $('#lb').textContent = 'Đăng nhập'; }
   };
 }
@@ -305,13 +313,13 @@ function renderChangePw(first){
     $('#pb').disabled = true;
     try{
       const d = await api('changePassword', { old: $('#po').value, new: $('#pn').value });
-      S.pwOld = ''; S.boot = d.boot; S.lastLoad = Date.now(); toast('Đã đổi mật khẩu'); render();
+      S.pwOld = ''; S.boot = d.boot; S.lastLoad = Date.now(); saveBoot(); toast('Đã đổi mật khẩu'); render();
     }catch(err){ $('#pe').textContent = err.message; $('#pb').disabled = false; }
   };
 }
 async function logout(silent){
   if(!silent){ try{ await api('logout'); }catch(e){} }
-  S.token = null; S.boot = null; LS.set('sachiu_token', null); renderLogin();
+  S.token = null; S.boot = null; LS.set('sachiu_token', null); LS.set('sachiu_boot', null); renderLogin();
 }
 
 // ======================= KHUNG CHÍNH ====================
@@ -1102,10 +1110,14 @@ function closeModal(){ $('#modal').innerHTML = ''; document.body.style.overflow 
 document.addEventListener('keydown', e => { if(e.key === 'Escape') closeModal(); });
 
 // ======================= KHỞI ĐỘNG ======================
+document.addEventListener('focusout', () => setTimeout(() => {
+  if(S.pendingRender && !(document.activeElement && document.activeElement.matches('input,textarea,select'))){ S.pendingRender = false; render(); }
+}, 400));
 window.addEventListener('focus', () => { if(S.boot && Date.now() - S.lastLoad > 60000 && !$('#modal').innerHTML) load(true); });
 if(S.token){
-  $('#app').innerHTML = '<div class="empty" style="padding-top:40vh"><span class="spin"></span> Đang tải...</div>';
-  load();
+  let c = null; try{ c = JSON.parse(LS.get('sachiu_boot') || 'null'); }catch(e){}
+  if(c && c.t === S.token && c.b){ S.boot = c.b; render(); load(true); }
+  else { $('#app').innerHTML = '<div class="empty" style="padding-top:40vh"><span class="spin"></span> Đang tải...</div>'; load(); }
 } else renderLogin();
 </script>
 </body>
