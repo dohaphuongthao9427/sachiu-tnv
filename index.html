@@ -31,6 +31,7 @@ a{color:var(--pri-2)}
 .tab.on{color:var(--pri);border-bottom-color:var(--pri)}
 .tab .n{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;margin-left:4px;line-height:18px;text-align:center}
 main{max-width:980px;margin:0 auto;padding:16px 16px 96px}
+main.wide{max-width:1640px}
 @media (max-width:720px){
   .tabs{position:fixed;bottom:0;top:auto;left:0;right:0;border-top:1px solid var(--line);border-bottom:0;padding:0 4px env(safe-area-inset-bottom);justify-content:space-around}
   .tab{flex:1;padding:10px 4px;font-size:12px;border-bottom:0;border-top:3px solid transparent}
@@ -340,7 +341,7 @@ function render(){
     <button title="Đăng xuất" onclick="logout()">Thoát</button>
   </div>
   <nav class="tabs">${ts.map(t => `<button class="tab ${S.tab===t[0]?'on':''}" onclick="go('${t[0]}')">${t[1]}${c[t[0]]?`<span class="n">${c[t[0]]}</span>`:''}</button>`).join('')}</nav>
-  <main id="main">${view()}</main>`;
+  <main id="main" class="${S.tab==='cho'?'wide':''}">${view()}</main>`;
   afterRender();
 }
 function go(t){ S.tab = t; LS.set('sachiu_tab', t); render(); window.scrollTo(0,0); if(Date.now() - S.lastLoad > 10000) load(true); }
@@ -377,7 +378,7 @@ function vMine(){
     <button class="chip ${S.filter==='cho'?'on':''}" onclick="S.filter='cho';render()">Chờ duyệt (${n('cho')})</button>
     <button class="chip ${S.filter==='xong'?'on':''}" onclick="S.filter='xong';render()">Đã xong (${n('xong')})</button>
   </div>
-  ${list.length ? list.map(x => mineCard(x.p, x.t)).join('') : `<div class="empty">${S.filter==='dang' ? 'Bạn chưa có việc đang làm.<br><br><button class="btn pri" onclick="go(\'cho\')">Xem Chợ việc</button>' : 'Chưa có việc nào ở mục này.'}</div>`}`;
+  ${list.length ? list.map(x => mineCard(x.p, x.t)).join('') : `<div class="empty">${S.filter==='dang' ? 'Bạn chưa có việc đang làm.<br><br><button class="btn pri" onclick="go(\'cho\')">Xem Danh mục</button>' : 'Chưa có việc nào ở mục này.'}</div>`}`;
 }
 function mineCard(p, t){
   const st = STATUS[p.trang_thai] || ['',''];
@@ -726,7 +727,7 @@ function vTasksAdmin(){
   ${tasks.length ? stages.map(st => `<h3>${esc(st || 'Chưa phân nhóm')}</h3>` + tasks.filter(t => gk(t) === st).map(t => {
     const list = pcs.filter(p => p.cv_id === t.id);
     return `<div class="card click" onclick="taskForm('${t.id}')">
-      <div class="row sb"><span class="title">${esc(t.ten)}</span><span>${t.trang_thai==='Mo'?`<span class="badge b-pri">Chợ việc ${t.so_nhan}/${num(t.so_nguoi)||1}</span>`:'<span class="badge">Giao trực tiếp</span>'}</span></div>
+      <div class="row sb"><span class="title">${esc(t.ten)}</span><span>${t.trang_thai==='Mo'?`<span class="badge b-pri">Danh mục ${t.so_nhan}/${num(t.so_nguoi)||1}</span>`:'<span class="badge">Giao trực tiếp</span>'}</span></div>
       <div class="meta"><span>${num(t.gio_chuan)} giờ</span>${t.nhom?`<span>${esc(t.nhom)}</span>`:''}${dlBadge(t.deadline, list.length && list.every(p=>p.trang_thai==='DaDuyet'))}${isTrue(t.bai_tt)?'<span class="badge">Bài TT</span>':''}${t.nguoi_kiem_tra?`<span>KT: ${t.nguoi_kiem_tra.split(',').map(u=>esc(uName(u.trim()))).join(', ')}</span>`:''}</div>
       ${list.length?`<div class="mt">${list.map(p => `<span class="pill">${esc(uName(p.username))} · <span class="badge ${STATUS[p.trang_thai][1]}" style="padding:0 6px">${p.trang_thai==='DaDuyet'?num(p.diem)+'đ':STATUS[p.trang_thai][0]}</span></span>`).join('')}</div>`:''}
     </div>`; }).join('')).join('') : '<div class="empty">Chương trình chưa có công việc.</div>'}`;
@@ -760,7 +761,7 @@ function taskForm(id){
     <label class="f">Người kiểm tra</label>
     <div style="columns:2;font-size:14px">${reviewers.map(u => `<label style="display:block"><input type="checkbox" class="tk" value="${esc(u.username)}" ${ktSel.includes(u.username)?'checked':''}> ${esc(u.ho_ten)}</label>`).join('') || '<span class="small">Chưa có tài khoản Người kiểm tra</span>'}</div>
     <label class="f">Cách phân việc</label>
-    <div class="seg"><button type="button" id="tmo" class="${t.trang_thai==='Mo'?'on g':''}" onclick="setMode('Mo')">Đưa lên Chợ việc</button><button type="button" id="tdo" class="${t.trang_thai!=='Mo'?'on g':''}" onclick="setMode('Dong')">Giao trực tiếp</button></div>
+    <div class="seg"><button type="button" id="tmo" class="${t.trang_thai==='Mo'?'on g':''}" onclick="setMode('Mo')">Đưa lên Danh mục</button><button type="button" id="tdo" class="${t.trang_thai!=='Mo'?'on g':''}" onclick="setMode('Dong')">Giao trực tiếp</button></div>
     <input type="hidden" id="tst" value="${t.trang_thai==='Mo'?'Mo':'Dong'}">
     ${!id ? `<div id="tas" class="${t.trang_thai==='Mo'?'hidden':''}"><label class="f">Giao cho</label><div style="columns:2;font-size:14px">${members.map(u => `<label style="display:block"><input type="checkbox" class="ta" value="${esc(u.username)}"> ${esc(u.ho_ten)}</label>`).join('')}</div></div>` : `
     <h3>Người thực hiện (${pcs.length})</h3>
@@ -797,7 +798,7 @@ function bulkForm(){
     <label class="f">Mỗi dòng 1 việc: <b>Tên | giờ | deadline (dd/mm hh:mm) | số người | bắt đầu (dd/mm)</b></label>
     <textarea class="i" id="bt" style="min-height:160px" placeholder="Poster sự kiện | 2 | 23/08 23:59 | 1&#10;Caption giới thiệu diễn giả | 3 | 30/08 | 1&#10;Checklist vật dụng | 1.5"></textarea>
     <label class="f"><input type="checkbox" id="bb"> Các việc này là bài truyền thông</label>
-    <label class="f"><input type="checkbox" id="bm" checked> Đưa lên Chợ việc (bỏ chọn = giao trực tiếp sau)</label>
+    <label class="f"><input type="checkbox" id="bm" checked> Đưa lên Danh mục (bỏ chọn = giao trực tiếp sau)</label>
     <div class="actions"><button class="btn pri" onclick="saveBulk()">Thêm</button><button class="btn" onclick="closeModal()">Hủy</button></div>`);
 }
 function parseDl(s){
@@ -938,7 +939,7 @@ function vImport(){
         <td class="small">${esc(r.giai_doan)}</td><td>${esc(r.ten)}</td>
         <td><input type="number" step="0.5" value="${r.gio}" onchange="impGio(${si},${ri},this.value)"></td>
         <td class="small">${r.deadline?fmt(r.deadline,true):`<span class="unm">${esc(r.deadline_goc||'')}</span>`}</td>
-        <td>${r.nguoi.map((p, pi) => `<div style="margin-bottom:3px">${p.username?'':`<span class="unm small">"${esc(p.raw)}"</span> `}<select onchange="impSet(${si},${ri},'nguoi',this.value,${pi})">${opt(p.username)}</select> <input type="number" step="0.5" value="${p.gio}" onchange="impSet(${si},${ri},'pgio',this.value,${pi})"></div>`).join('') || '<span class="small">Chợ việc</span>'}</td>
+        <td>${r.nguoi.map((p, pi) => `<div style="margin-bottom:3px">${p.username?'':`<span class="unm small">"${esc(p.raw)}"</span> `}<select onchange="impSet(${si},${ri},'nguoi',this.value,${pi})">${opt(p.username)}</select> <input type="number" step="0.5" value="${p.gio}" onchange="impSet(${si},${ri},'pgio',this.value,${pi})"></div>`).join('') || '<span class="small">Danh mục (chưa ai nhận)</span>'}</td>
         <td class="small">${r.tien_do==='xong'?'✅ Xong':r.tien_do==='dang'?'Đang làm':''}</td>
         <td><input type="checkbox" ${r.bai_tt?'checked':''} onchange="impSet(${si},${ri},'bai_tt',this.checked)"></td></tr>`).join('')}
     </table></div>` : ''}
