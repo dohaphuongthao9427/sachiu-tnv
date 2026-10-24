@@ -642,13 +642,14 @@ function vTasksAdmin(){
   if(!S.qlCt || !progs.some(p => p.id === S.qlCt)) S.qlCt = progs[0].id;
   const tasks = b.tasks.filter(t => t.ct_id === S.qlCt);
   const pcs = b.assignments || [];
-  const stages = [...new Set(tasks.map(t => t.giai_doan || ''))];
+  const gk = t => (S.grp === 'nhom' ? t.nhom : t.giai_doan) || '';
+  const stages = [...new Set(tasks.map(gk))];
   return `
   <div class="toolbar">
     <select class="i" onchange="S.qlCt=this.value;render()">${progs.map(p => `<option value="${p.id}" ${p.id===S.qlCt?'selected':''}>${esc(p.ten)}${p.trang_thai==='DaDong'?' (đã đóng)':''}</option>`).join('')}</select>
-    <button class="btn pri" onclick="taskForm()">+ Thêm việc</button><button class="btn" onclick="bulkForm()">+ Thêm nhiều</button>
+    <button class="btn pri" onclick="taskForm()">+ Thêm việc</button><button class="btn" onclick="bulkForm()">+ Thêm nhiều</button>${grpSel()}
   </div>
-  ${tasks.length ? stages.map(st => `<h3>${esc(st || 'Chưa phân giai đoạn')}</h3>` + tasks.filter(t => (t.giai_doan||'') === st).map(t => {
+  ${tasks.length ? stages.map(st => `<h3>${esc(st || 'Chưa phân nhóm')}</h3>` + tasks.filter(t => gk(t) === st).map(t => {
     const list = pcs.filter(p => p.cv_id === t.id);
     return `<div class="card click" onclick="taskForm('${t.id}')">
       <div class="row sb"><span class="title">${esc(t.ten)}</span><span>${t.trang_thai==='Mo'?`<span class="badge b-pri">Chợ việc ${t.so_nhan}/${num(t.so_nguoi)||1}</span>`:'<span class="badge">Giao trực tiếp</span>'}</span></div>
@@ -656,6 +657,7 @@ function vTasksAdmin(){
       ${list.length?`<div class="mt">${list.map(p => `<span class="pill">${esc(uName(p.username))} · <span class="badge ${STATUS[p.trang_thai][1]}" style="padding:0 6px">${p.trang_thai==='DaDuyet'?num(p.diem)+'đ':STATUS[p.trang_thai][0]}</span></span>`).join('')}</div>`:''}
     </div>`; }).join('')).join('') : '<div class="empty">Chương trình chưa có công việc.</div>'}`;
 }
+function grpSel(){ return `<select class="i" style="max-width:190px;min-width:0" onchange="S.grp=this.value;render()"><option value="giai_doan">Theo giai đoạn</option><option value="nhom" ${S.grp==='nhom'?'selected':''}>Theo nhóm việc</option></select>`; }
 function hourHints(){
   return String(B().config.GIO_CHUAN_GOI_Y||'').split(';').map(s => s.split('=')).filter(x => x.length === 2).map(x => `<button type="button" class="chip" onclick="$('#tg').value='${num(x[1])}'">${esc(x[0].trim())}: ${num(x[1])}h</button>`).join('');
 }
@@ -949,7 +951,7 @@ function vGantt(){
   }).sort((a, c) => (S.gCt === '_mine' ? 0 : 0) || a.start - c.start || a.end - c.end);
   const noDl = tasks.filter(t => !t.deadline);
   const sel = `<div class="toolbar"><select class="i" onchange="S.gCt=this.value;render()"><option value="_mine" ${S.gCt==='_mine'?'selected':''}>⭐ Việc của tôi</option>${progs.map(p => `<option value="${p.id}" ${p.id===S.gCt?'selected':''}>${esc(p.ten)}${p.trang_thai==='DaDong'?' (đã đóng)':''}</option>`).join('')}</select>
-    <label class="small"><input type="checkbox" ${S.gHide?'checked':''} onchange="S.gHide=this.checked;render()"> Ẩn việc đã xong</label></div>
+    <label class="small"><input type="checkbox" ${S.gHide?'checked':''} onchange="S.gHide=this.checked;render()"> Ẩn việc đã xong</label>${grpSel()}</div>
     <div class="legend">${Object.keys(GST).map(k => `<span><i class="gb st-${k}" style="position:static;display:inline-block;padding:0;height:12px;box-shadow:none"></i>${GST[k]}</span>`).join('')}<span><i style="background:var(--bad);width:2px"></i>Hôm nay</span></div>`;
   if(!items.length) return sel + `<div class="empty">Không có việc nào có deadline để vẽ sơ đồ.</div>`;
   let lo = day0(Math.min(...items.map(i => i.start), Date.now())) - DAY, hi = day0(Math.max(...items.map(i => i.end), Date.now())) + 2 * DAY;
@@ -974,8 +976,9 @@ function vGantt(){
   let body = '';
   if(S.gCt === '_mine') body = items.map(row).join('');
   else {
-    const stages = [...new Set(items.map(i => i.t.giai_doan || ''))];
-    body = stages.map(st => (stages.length > 1 ? `<div class="gr stage"><div class="gl"><b>${esc(st || 'Khác')}</b></div><div class="gc" style="width:${width}px">${grid}${today}</div></div>` : '') + items.filter(i => (i.t.giai_doan||'') === st).map(row).join('')).join('');
+    const gk = t => (S.grp === 'nhom' ? t.nhom : t.giai_doan) || '';
+    const stages = [...new Set(items.map(i => gk(i.t)))];
+    body = stages.map(st => (stages.length > 1 ? `<div class="gr stage"><div class="gl"><b>${esc(st || 'Khác')}</b></div><div class="gc" style="width:${width}px">${grid}${today}</div></div>` : '') + items.filter(i => gk(i.t) === st).map(row).join('')).join('');
   }
   return sel + `<div class="gw"><div class="gt" style="width:${210+width}px">
     <div class="gr head"><div class="gl"><b>${items.length} công việc</b><div class="s">Kéo ngang để xem thêm</div></div><div class="gc" style="width:${width}px">${head}${today}</div></div>
