@@ -128,6 +128,25 @@ details summary{cursor:pointer;color:var(--muted);margin:10px 0}
 .imp-row select{max-width:150px;padding:3px;border:1px solid #cfd6e1;border-radius:6px}
 .imp-row input[type=number]{width:62px;padding:3px;border:1px solid #cfd6e1;border-radius:6px}
 .unm{color:var(--bad)}
+/* bảng tính danh mục */
+.sheetwrap{overflow:auto;max-height:74vh;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+.sheet{border-collapse:collapse;table-layout:fixed;width:max-content;min-width:100%;font-size:13px}
+.sheet th{position:sticky;top:0;z-index:2;background:#eaf1fb;color:#344054;font-weight:600;padding:8px;border:1px solid #d9e2ef;text-align:left}
+.sheet td{border:1px solid #e3e7ee;padding:0;vertical-align:top;background:#fff}
+.sheet td.ro{padding:7px 8px}
+.sheet tr.grp td{background:#f3f6fb;font-weight:700;padding:7px 8px;color:var(--pri)}
+.sheet tr.mine td{background:#fffbea}
+.sheet .ce{width:100%;border:0;background:transparent;padding:7px 8px;font:inherit;color:inherit;min-height:32px;display:block}
+.sheet textarea.ce{resize:vertical;line-height:1.35}
+.sheet .ce:focus{outline:2px solid var(--pri-2);outline-offset:-2px;background:#fff}
+.sheet select.ce{padding:5px 6px}
+.ce.saving{background:#fff3c4!important}.ce.saved{background:#dff5ea!important}.ce.err{background:#fdecea!important}
+.sheet td.num{color:var(--muted);text-align:center}
+.gst-mo{background:#eef1f5;color:#475467}.gst-dang{background:var(--pri-soft);color:var(--pri)}.gst-cho{background:var(--warn-soft);color:var(--warn)}.gst-xong{background:var(--ok-soft);color:var(--ok)}.gst-tre{background:var(--bad-soft);color:var(--bad)}
+.chip .tab{padding:0;border:0}
+.sheet tr > :nth-child(1){position:sticky;left:0;z-index:1}.sheet tr > :nth-child(2){position:sticky;left:40px;z-index:1;box-shadow:2px 0 0 #e3e7ee}
+.sheet th:nth-child(1),.sheet th:nth-child(2){z-index:3}.sheet tr.grp td{position:static}
+@media (max-width:720px){.sheet col:nth-child(2){width:150px!important}}
 /* gantt */
 .gw{background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:auto;max-height:72vh;position:relative}
 .gt{position:relative;min-width:100%}
@@ -201,7 +220,9 @@ function dlBadge(iso, done){
 function toast(msg, type){ const d = document.createElement('div'); d.textContent = msg; if(type) d.className = type; $('#toast').appendChild(d); setTimeout(() => d.remove(), type==='err'?5000:2600); }
 function busy(on){ busyN += on ? 1 : -1; $('#busy').classList.toggle('hidden', busyN <= 0); }
 async function copy(text){ try{ await navigator.clipboard.writeText(text); toast('Đã sao chép'); }catch(e){ const t=document.createElement('textarea'); t.value=text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('Đã sao chép'); } }
-const canReview = t => isQL() || String(t.nguoi_kiem_tra||'').split(',').map(s=>s.trim()).includes(B().me.username) || t.tao_boi === B().me.username;
+const splitU = s => String(s||'').split(',').map(x=>x.trim()).filter(Boolean);
+const canEditCt = id => isQL() || splitU(prog(id).nguoi_kiem_tra).includes(B().me.username);
+const canReview = t => !!t && (canEditCt(t.ct_id) || splitU(t.nguoi_kiem_tra).includes(B().me.username));
 
 // ======================= API ============================
 async function api(action, data){
@@ -294,7 +315,7 @@ async function logout(silent){
 
 // ======================= KHUNG CHÍNH ====================
 function tabs(){
-  const t = [['viec','Việc của tôi'],['cho','Chợ việc'],['gantt','Tiến trình'],['hop','Lịch họp'],['tiendo', isKT() ? 'Tổng hợp' : 'Tiến độ']];
+  const t = [['viec','Việc của tôi'],['cho','Danh mục'],['gantt','Tiến trình'],['hop','Lịch họp'],['tiendo', isKT() ? 'Tổng hợp' : 'Tiến độ']];
   if(isKT()) t.push(['duyet','Duyệt'], ['ql','Quản lý']);
   return t;
 }
@@ -326,7 +347,7 @@ function go(t){ S.tab = t; LS.set('sachiu_tab', t); render(); window.scrollTo(0,
 function view(){
   switch(S.tab){
     case 'viec': return vMine();
-    case 'cho': return vMarket();
+    case 'cho': return vCatalog();
     case 'hop': return vMeetings();
     case 'gantt': return vGantt();
     case 'tiendo': return vProgress();
@@ -339,6 +360,7 @@ function afterRender(){
   const gw = document.querySelector('.gw'), gt = gw && gw.querySelector('.gtoday');
   if(gw && gt && !gw.dataset.done){ gw.scrollLeft = Math.max(0, parseFloat(gt.style.left) - 160); gw.dataset.done = 1; }
   document.querySelectorAll('input[type=range][data-pc]').forEach(r => r.oninput = () => sliderUpd(r));
+  document.querySelectorAll('.ce').forEach(el => el.onchange = () => cellSave(el));
 }
 
 // ======================= VIỆC CỦA TÔI ===================
@@ -396,21 +418,73 @@ function marketTasks(){
   const b = B(), mineIds = new Set(b.mine.map(p => p.cv_id));
   return b.tasks.filter(t => t.trang_thai === 'Mo' && t.so_nhan < (num(t.so_nguoi)||1) && !mineIds.has(t.id) && prog(t.ct_id).trang_thai !== 'DaDong');
 }
-function vMarket(){
-  let list = marketTasks();
-  const cts = [...new Set(list.map(t => t.ct_id))];
-  if(S.ct && !cts.includes(S.ct)) S.ct = '';
-  if(S.ct) list = list.filter(t => t.ct_id === S.ct);
-  list.sort((a, b) => new Date(a.deadline||'2999') - new Date(b.deadline||'2999'));
+function vCatalog(){
+  const b = B();
+  const progs = b.programs.slice().sort((a, c) => (a.trang_thai==='DaDong') - (c.trang_thai==='DaDong'));
+  if(!progs.length) return '<div class="empty">Chưa có chương trình nào.</div>';
+  if(!S.cat || !progs.some(p => p.id === S.cat)) S.cat = progs[0].id;
+  const ct = prog(S.cat), edit = canEditCt(S.cat), me = b.me.username;
+  const open = id => b.tasks.filter(t => t.ct_id === id && t.trang_thai === 'Mo' && t.so_nhan < (num(t.so_nguoi)||1)).length;
+  let tasks = b.tasks.filter(t => t.ct_id === S.cat);
+  const mineBy = {}; b.mine.forEach(p => mineBy[p.cv_id] = p);
+  if(S.catF === 'trong') tasks = tasks.filter(t => t.trang_thai === 'Mo' && t.so_nhan < (num(t.so_nguoi)||1));
+  if(S.catF === 'toi') tasks = tasks.filter(t => mineBy[t.id]);
+  const gk = t => (S.grp === 'nhom' ? t.nhom : t.giai_doan) || '';
+  const groups = [...new Set(tasks.map(gk))];
+  const inp = (t, f, type, val) => `<input class="ce" type="${type}" data-cv="${t.id}" data-f="${f}" value="${esc(val)}"${type==='number'?' step="0.5" min="0"':''}>`;
+  const pcsOf = id => (b.assignments||[]).filter(p => p.cv_id === id);
+  let n = 0;
+  const row = t => {
+    n++;
+    const my = mineBy[t.id], st = taskState(t), slots = t.trang_thai === 'Mo' && t.so_nhan < (num(t.so_nguoi)||1) && !my;
+    const cell = (f, type, val, show) => edit ? `<td>${inp(t, f, type, val)}</td>` : `<td class="ro">${show}</td>`;
+    let prog_ = my ? (my.trang_thai === 'DaDuyet' ? `<span class="badge b-ok">✓ ${num(my.diem)} điểm</span>` :
+      `<select class="ce" data-pc="${my.id}" data-f="trang_thai">${my.trang_thai==='TraVe'?'<option value="TraVe" selected disabled>Cần sửa</option>':''}<option value="DaNhan" ${my.trang_thai==='DaNhan'?'selected':''}>Đang làm</option><option value="ChoDuyet" ${my.trang_thai==='ChoDuyet'?'selected':''}>Đã xong – chờ duyệt</option></select>`)
+      : `<span class="badge gst-${st.st}">${GST[st.st]}</span>`;
+    if(edit) prog_ += ` <button class="btn sm" title="Phân công / chấm điểm" onclick="taskForm('${t.id}')">⋯</button>`;
+    const links = my ? `<input class="ce" type="url" data-pc="${my.id}" data-f="link" value="${esc(my.link||'')}" placeholder="Dán link sản phẩm">`
+      : edit ? pcsOf(t.id).filter(p => p.link).map(p => `<a href="${esc(p.link)}" target="_blank" rel="noopener">${esc(uName(p.username).split(' ').pop())}</a>`).join(', ') || '<span class="small">—</span>' : '<span class="small">—</span>';
+    return `<tr${my?' class="mine"':''}><td class="ro num">${n}</td>
+      ${cell('ten','text',t.ten||'', `<b>${esc(t.ten)}</b>`)}
+      ${edit ? `<td><textarea class="ce" data-cv="${t.id}" data-f="mo_ta" rows="1">${esc(t.mo_ta||'')}</textarea></td>` : `<td class="ro small" style="white-space:pre-wrap;max-width:260px">${esc(t.mo_ta||'')}</td>`}
+      ${cell('gio_chuan','number',num(t.gio_chuan), num(t.gio_chuan))}
+      ${cell('bat_dau','datetime-local',toInput(t.bat_dau), fmt(t.bat_dau))}
+      ${cell('deadline','datetime-local',toInput(t.deadline), t.deadline ? dlBadge(t.deadline, st.st==='xong') : '')}
+      ${cell('so_nguoi','number',num(t.so_nguoi)||1, `${t.so_nhan}/${num(t.so_nguoi)||1}`)}
+      <td class="ro">${(t.nguoi||[]).map(esc).join(', ')}${slots ? ` <button class="btn sm pri" onclick="claim('${t.id}')">Nhận</button>` : ''}</td>
+      <td class="ro" style="white-space:nowrap">${prog_}</td>
+      <td${my?'':' class="ro"'}>${links}</td></tr>`;
+  };
   return `
-  ${cts.length > 1 ? `<div class="chips"><button class="chip ${!S.ct?'on':''}" onclick="S.ct='';render()">Tất cả</button>${cts.map(id => `<button class="chip ${S.ct===id?'on':''}" onclick="S.ct='${id}';render()">${esc(prog(id).ten)}</button>`).join('')}</div>` : ''}
-  ${list.length ? list.map(t => `<div class="card">
-    <div class="row sb"><span class="title">${esc(t.ten)}</span><span class="badge b-pri">${num(t.gio_chuan)} giờ</span></div>
-    <div class="meta"><span>${esc(prog(t.ct_id).ten||'')}</span>${t.giai_doan?`<span>${esc(t.giai_doan)}</span>`:''}${dlBadge(t.deadline)}<span>${t.so_nhan}/${num(t.so_nguoi)||1} người</span>${isTrue(t.bai_tt)?'<span class="badge">Bài TT</span>':''}</div>
-    ${t.mo_ta?`<div class="small" style="white-space:pre-wrap;margin-top:6px">${esc(t.mo_ta)}</div>`:''}
-    ${t.nguoi.length?`<div class="small mt">Đã nhận: ${t.nguoi.map(esc).join(', ')}</div>`:''}
-    <div class="actions"><button class="btn pri" onclick="claim('${t.id}')">Nhận việc</button></div>
-  </div>`).join('') : '<div class="empty">Hiện chưa có việc nào đang chờ người nhận 🎉</div>'}`;
+  <div class="chips">${progs.map(p => `<button class="chip ${S.cat===p.id?'on':''}" onclick="S.cat='${p.id}';render()">${esc(p.ten)}${p.trang_thai==='DaDong'?' (đã đóng)':''}${open(p.id)?` <span class="tab"><span class="n">${open(p.id)}</span></span>`:''}</button>`).join('')}</div>
+  <div class="toolbar">
+    <div class="small" style="flex:1">Người kiểm tra: <b>${splitU(ct.nguoi_kiem_tra).map(u => esc(uName(u))).join(', ') || 'chưa giao'}</b>${edit ? ' · Bạn được sửa trực tiếp các ô (tự lưu).' : ' · Bạn sửa được Tiến độ và Link ở dòng của mình (tự lưu).'}</div>
+    <select class="i" style="max-width:170px;min-width:0" onchange="S.catF=this.value;render()"><option value="">Tất cả việc</option><option value="trong" ${S.catF==='trong'?'selected':''}>Còn trống người</option><option value="toi" ${S.catF==='toi'?'selected':''}>Việc của tôi</option></select>
+    ${grpSel()}
+    ${edit ? `<button class="btn pri" onclick="addRow()">+ Thêm dòng</button>` : ''}
+  </div>
+  <div class="sheetwrap"><table class="sheet">
+    <colgroup><col style="width:40px"><col style="width:230px"><col style="width:250px"><col style="width:70px"><col style="width:175px"><col style="width:175px"><col style="width:60px"><col style="width:190px"><col style="width:175px"><col style="width:190px"></colgroup>
+    <tr><th>#</th><th>Công việc</th><th>Chi tiết / yêu cầu</th><th>Giờ</th><th>Bắt đầu</th><th>Deadline</th><th>Số người</th><th>Người phụ trách</th><th>Tiến độ</th><th>Link sản phẩm</th></tr>
+    ${tasks.length ? groups.map(g => (groups.length > 1 || g ? `<tr class="grp"><td colspan="10">${esc(g || 'Chưa phân nhóm')}</td></tr>` : '') + tasks.filter(t => gk(t) === g).map(row).join('')).join('') : `<tr><td colspan="10" class="ro empty">Không có công việc.</td></tr>`}
+  </table></div>`;
+}
+async function cellSave(el){
+  const pc = el.dataset.pc, cv = el.dataset.cv, f = el.dataset.f;
+  let v = el.type === 'checkbox' ? el.checked : el.value;
+  if(el.type === 'datetime-local') v = fromInput(v);
+  el.classList.remove('saved','err'); el.classList.add('saving');
+  try{
+    const r = await api('updateCell', pc ? { pc_id: pc, field: f, value: v } : { cv_id: cv, field: f, value: v });
+    const b = B();
+    if(r.task) Object.assign(b.tasks.find(t => t.id === cv) || {}, r.task);
+    if(r.pc){ [b.mine, b.assignments || []].forEach(list => { const x = list.find(p => p.id === pc); if(x) Object.assign(x, r.pc); }); }
+    el.classList.remove('saving'); el.classList.add('saved'); setTimeout(() => el.classList.remove('saved'), 1200);
+    if(f === 'trang_thai'){ toast(v === 'ChoDuyet' ? 'Đã báo xong, chờ duyệt' : 'Đã cập nhật tiến độ'); render(); }
+  }catch(e){ el.classList.remove('saving'); el.classList.add('err'); toast(e.message, 'err'); }
+}
+function addRow(){
+  act('saveTasks', { items: [{ ct_id: S.cat, ten: 'Việc mới', trang_thai: 'Mo', so_nguoi: 1 }] }, { msg: 'Đã thêm dòng, sửa trực tiếp trong bảng' });
 }
 function claim(cvId){
   act('claimTask', { cv_id: cvId }, { msg: 'Đã nhận việc', optimistic: b => {
@@ -637,8 +711,8 @@ function vManage(){
 // ---- Công việc
 function vTasksAdmin(){
   const b = B();
-  const progs = b.programs.slice().sort((a, c) => (a.trang_thai==='DaDong') - (c.trang_thai==='DaDong'));
-  if(!progs.length) return `<div class="empty">Chưa có chương trình. ${isQL()?'<br><br><button class="btn pri" onclick="S.qlSub=\'ct\';render()">Tạo chương trình</button> hoặc <button class="btn" onclick="S.qlSub=\'imp\';render()">Import file cũ</button>':''}</div>`;
+  const progs = b.programs.filter(p => canEditCt(p.id)).sort((a, c) => (a.trang_thai==='DaDong') - (c.trang_thai==='DaDong'));
+  if(!progs.length) return `<div class="empty">Chưa có chương trình bạn phụ trách. ${isQL()?'<br><br><button class="btn pri" onclick="S.qlSub=\'ct\';render()">Tạo chương trình</button> hoặc <button class="btn" onclick="S.qlSub=\'imp\';render()">Import file cũ</button>':''}</div>`;
   if(!S.qlCt || !progs.some(p => p.id === S.qlCt)) S.qlCt = progs[0].id;
   const tasks = b.tasks.filter(t => t.ct_id === S.qlCt);
   const pcs = b.assignments || [];
@@ -673,7 +747,7 @@ function taskForm(id){
     <label class="f">Tên công việc</label><input class="i" id="tt" value="${esc(t.ten||'')}">
     <label class="f">Mô tả / yêu cầu</label><textarea class="i" id="tm">${esc(t.mo_ta||'')}</textarea>
     <div class="grid2">
-      <div><label class="f">Chương trình</label><select class="i" id="tc">${b.programs.map(p => `<option value="${p.id}" ${p.id===t.ct_id?'selected':''}>${esc(p.ten)}</option>`).join('')}</select></div>
+      <div><label class="f">Chương trình</label><select class="i" id="tc">${b.programs.filter(p => canEditCt(p.id) || p.id === t.ct_id).map(p => `<option value="${p.id}" ${p.id===t.ct_id?'selected':''}>${esc(p.ten)}</option>`).join('')}</select></div>
       <div><label class="f">Giai đoạn</label><input class="i" id="ts" list="stl" value="${esc(t.giai_doan||'')}" placeholder="VD: Trước chương trình"><datalist id="stl">${stages.map(s => `<option value="${esc(s)}">`).join('')}</datalist></div>
       <div><label class="f">Giờ chuẩn (mỗi người)</label><input class="i" id="tg" type="number" step="0.5" min="0" value="${esc(t.gio_chuan)}"></div>
       <div><label class="f">Ngày bắt đầu (cho sơ đồ Gantt)</label><input class="i" id="tbd" type="datetime-local" value="${toInput(t.bat_dau)}"></div>
@@ -747,7 +821,7 @@ function vPrograms(){
   ${b.programs.length ? b.programs.slice().reverse().map(p => {
     const ts = b.tasks.filter(t => t.ct_id === p.id);
     return `<div class="card"><div class="row sb"><span class="title">${esc(p.ten)}</span><span class="badge ${p.trang_thai==='DaDong'?'':'b-ok'}">${p.trang_thai==='DaDong'?'Đã đóng':'Đang chạy'}</span></div>
-    <div class="meta"><span>${esc(p.hoc_ky)}</span>${p.bat_dau?`<span>${fmtDay(p.bat_dau)}${p.ket_thuc?' → '+fmtDay(p.ket_thuc):''}</span>`:''}<span>${ts.length} việc</span>${p.host?`<span>Host: ${String(p.host).split(',').map(u=>esc(uName(u.trim()))).join(', ')}</span>`:''}${p.diem_hai_long!==''&&p.diem_hai_long!=null?`<span>Hài lòng: ${p.diem_hai_long}/5</span>`:''}</div>
+    <div class="meta"><span>${esc(p.hoc_ky)}</span>${p.bat_dau?`<span>${fmtDay(p.bat_dau)}${p.ket_thuc?' → '+fmtDay(p.ket_thuc):''}</span>`:''}<span>${ts.length} việc</span>${p.nguoi_kiem_tra?`<span>Kiểm tra: ${splitU(p.nguoi_kiem_tra).map(u=>esc(uName(u))).join(', ')}</span>`:''}${p.host?`<span>Host: ${String(p.host).split(',').map(u=>esc(uName(u.trim()))).join(', ')}</span>`:''}${p.diem_hai_long!==''&&p.diem_hai_long!=null?`<span>Hài lòng: ${p.diem_hai_long}/5</span>`:''}</div>
     ${isQL()?`<div class="actions"><button class="btn sm" onclick="progForm('${p.id}')">Sửa</button><button class="btn sm" onclick="cloneProg('${p.id}')">Nhân bản làm mẫu</button><button class="btn sm" onclick="S.qlCt='${p.id}';S.qlSub='viec';render()">Xem công việc</button></div>`:''}</div>`; }).join('') : '<div class="empty">Chưa có chương trình.</div>'}`;
 }
 function progForm(id){
@@ -762,6 +836,8 @@ function progForm(id){
       <div><label class="f">Kết thúc</label><input class="i" type="date" id="pe2" value="${p.ket_thuc?toInput(p.ket_thuc).slice(0,10):''}"></div>
       <div><label class="f">Điểm hài lòng khảo sát (thang 5)</label><input class="i" type="number" step="0.01" min="0" max="5" id="pd" value="${esc(p.diem_hai_long==null?'':p.diem_hai_long)}"></div>
     </div>
+    <label class="f">Người kiểm tra của chương trình (chỉ những người này được sửa/chấm việc trong chương trình)</label>
+    <div style="columns:2;font-size:14px">${b.users.filter(u=>u.vai_tro!=='QL').map(u => `<label style="display:block"><input type="checkbox" class="pk" value="${esc(u.username)}" ${splitU(p.nguoi_kiem_tra).includes(u.username)?'checked':''}> ${esc(u.ho_ten)}</label>`).join('')}</div>
     <label class="f">Host chương trình (dùng để xét Xuất sắc)</label>
     <div style="columns:2;font-size:14px">${b.users.filter(u=>u.vai_tro!=='QL').map(u => `<label style="display:block"><input type="checkbox" class="ph" value="${esc(u.username)}" ${hosts.includes(u.username)?'checked':''}> ${esc(u.ho_ten)}</label>`).join('')}</div>
     <label class="f">Ghi chú</label><textarea class="i" id="pg">${esc(p.ghi_chu||'')}</textarea>
@@ -770,7 +846,7 @@ function progForm(id){
 function saveProg(id){
   const d = { id: id || undefined, ten: $('#pt').value.trim(), hoc_ky: $('#ph').value.trim(), trang_thai: $('#ps').value,
     bat_dau: $('#pb').value ? new Date($('#pb').value + 'T00:00').toISOString() : '', ket_thuc: $('#pe2').value ? new Date($('#pe2').value + 'T23:59').toISOString() : '',
-    diem_hai_long: $('#pd').value, host: [...document.querySelectorAll('.ph:checked')].map(c => c.value).join(','), ghi_chu: $('#pg').value.trim() };
+    diem_hai_long: $('#pd').value, host: [...document.querySelectorAll('.ph:checked')].map(c => c.value).join(','), nguoi_kiem_tra: [...document.querySelectorAll('.pk:checked')].map(c => c.value).join(','), ghi_chu: $('#pg').value.trim() };
   if(!d.ten){ toast('Nhập tên chương trình', 'err'); return; }
   closeModal();
   act('saveProgram', d, { msg: 'Đã lưu chương trình' });
@@ -828,6 +904,11 @@ function showPw(list){
 function vImport(){
   const I = S.imp;
   if(!I || !I.data) return `<div class="card">
+    <h2>Nhập từ file mẫu</h2>
+    <p class="small">File Google Sheet mẫu có 2 cấp: sheet <b>ChuongTrinh</b> (chương trình + người kiểm tra) và sheet <b>CongViec</b> (các mục việc). Điền xong bấm "Nhập từ file mẫu" – dòng đã nhập sẽ được đánh dấu, lần sau không nhập lại.</p>
+    <div class="actions"><button class="btn" id="tpo" onclick="openTemplate()">Mở file mẫu</button><button class="btn pri" id="tpi" onclick="importTpl()">Nhập từ file mẫu</button></div>
+    <div id="tpr" class="small mt"></div></div>
+  <div class="card">
     <h2>Import từ file Google Sheets cũ</h2>
     <p class="small">Dán link file checklist của 1 chương trình (VD: TALKSHOW CHÀO ĐÓN TSV 2026-2027). Hệ thống tự đọc các sheet công việc, tách người phụ trách và số giờ, chuẩn hóa deadline, và tạo tài khoản từ sheet "Thông tin TNV" (chỉ lấy họ tên, MSSV, email, SĐT, khoa, lớp – không lấy CCCD/STK/địa chỉ).</p>
     <label class="f">Link Google Sheets</label><input class="i" id="iu" placeholder="https://docs.google.com/spreadsheets/d/..." value="${esc(I&&I.url||'')}">
@@ -898,6 +979,19 @@ async function impCommit(){
     toast(`Đã import ${r.so_viec} việc, ${r.so_phan_cong} phân công`);
     if(r.tai_khoan.length) showPw(r.tai_khoan);
   }catch(e){}
+}
+async function openTemplate(){
+  const w = window.open('', '_blank');
+  try{ const r = await api('createTemplate'); if(w) w.location = r.url; else location.href = r.url; $('#tpr').innerHTML = `File mẫu: <a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.url)}</a>`; }
+  catch(e){ if(w) w.close(); toast(e.message, 'err'); }
+}
+async function importTpl(){
+  $('#tpi').disabled = true; $('#tpi').innerHTML = '<span class="spin"></span> Đang nhập...';
+  try{
+    const r = await act('importTemplate', {});
+    $('#tpr').innerHTML = `Đã nhập <b>${r.viec}</b> việc, ${r.phan_cong} phân công · ${r.ct_moi} chương trình mới, ${r.ct_cap_nhat} cập nhật người kiểm tra${r.loi.length ? '<div class="note">' + r.loi.map(esc).join('<br>') + '</div>' : ''}`;
+  }catch(e){}
+  const b = $('#tpi'); if(b){ b.disabled = false; b.textContent = 'Nhập từ file mẫu'; }
 }
 // ---- Cấu hình
 function vConfig(){
