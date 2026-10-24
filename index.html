@@ -283,6 +283,19 @@ tr.me td{background:var(--pri-soft)}
 .seg button{background:transparent;border:0}
 .x,.seg button,.chip,.btn{cursor:pointer}
 .chip .tab{width:auto!important;display:inline!important;padding:0!important;box-shadow:none!important;background:none!important}
+
+/* trạng thái chương trình, vương miện, chế độ xem */
+.psel{margin-bottom:6px}.psel .toolbar{margin:8px 0 18px}
+.pstate{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:999px;box-shadow:3px 3px 7px rgba(163,177,198,.3),-2px -2px 6px #fff}
+.pstate i{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(255,255,255,.7)}
+.ps-dang{background:#e8f0fe;color:#1d4ed8}.ps-canh{background:#fef6dc;color:#a16207}.ps-tre{background:#fde8e8;color:#b91c1c}.ps-xong{background:#e3f7ee;color:#047857}
+.crown{width:20px;height:20px;vertical-align:-4px;margin-right:4px;filter:drop-shadow(1px 2px 2px rgba(0,0,0,.15))}
+td.rk{white-space:nowrap;font-weight:700}
+.vbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#fff7e6;color:#92400e;border-radius:16px;padding:10px 14px;margin-bottom:16px;box-shadow:var(--clay-sm)}
+.vas{width:auto;max-width:220px;padding:7px 10px;font-size:13px}
+.warnbox{background:var(--bad-soft);color:#7f1d1d;border-radius:16px;padding:12px 14px;font-size:14px;line-height:1.5}
+.warnbox ul{margin:6px 0 6px 18px;padding:0}
+@media (max-width:720px){.vas{max-width:120px}}
 </style>
 </head>
 <body>
@@ -308,6 +321,45 @@ const ROLE = { QL: 'Quản lý', KT: 'Người kiểm tra', TNV: 'Tình nguyện
 const ICON = {viec:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 4h6v3H9zM9 12l2 2 4-4"/></svg>',cho:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>',gantt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M7 12h11M4 18h7"/><circle cx="16" cy="6" r="1.5"/></svg>',hop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/></svg>',tiendo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-7"/></svg>',duyet:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>',ql:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'};
 const SICON = {list:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>',run:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',wait:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="3"/><path d="M9 10h6M9 14h4"/></svg>',done:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>',star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l2.4 5 5.6.8-4 3.9.9 5.5L12 16.6 7.1 19.2l.9-5.5-4-3.9 5.6-.8z"/></svg>',late:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>'};
 function statCard(cls, label, val, icon, click, on){ const tag = click ? 'button' : 'div'; return `<${tag} class="stat ${cls} ${on?'on':''}" ${click?`onclick="${click}"`:''}><div><span>${label}</span><b>${val}</b></div><i>${SICON[icon]||''}</i></${tag}>`; }
+// ---- Trạng thái chương trình
+const PS = { dang: ['Đang diễn ra', 'ps-dang', '🔵'], canh: ['Có việc trễ hạn', 'ps-canh', '🟡'], tre: ['Chương trình trễ hạn', 'ps-tre', '🔴'], xong: ['Đã hoàn thành', 'ps-xong', '🟢'] };
+function progState(p){
+  if(!p || !p.id) return 'dang';
+  if(p.hoan_thanh || p.trang_thai === 'DaDong') return 'xong';
+  if(p.ket_thuc && new Date(p.ket_thuc) < Date.now()) return 'tre';
+  if(B().tasks.some(t => t.ct_id === p.id && taskState(t).st === 'tre')) return 'canh';
+  return 'dang';
+}
+function psBadge(p){ const k = progState(p); return `<span class="pstate ${PS[k][1]}"><i></i>${PS[k][0]}</span>`; }
+function sortProgs(list){
+  const idx = new Map(B().programs.map((p, i) => [p.id, i])), k = S.ctSort || 'moi';
+  return list.slice().sort((a, b) =>
+    k === 'cu' ? idx.get(a.id) - idx.get(b.id) :
+    k === 'ten' ? String(a.ten).localeCompare(String(b.ten), 'vi') :
+    k === 'bd' ? (String(b.bat_dau || '').localeCompare(String(a.bat_dau || '')) || idx.get(b.id) - idx.get(a.id)) :
+    idx.get(b.id) - idx.get(a.id));
+}
+function sortSel(){ const k = S.ctSort || 'moi'; return `<select class="i" style="max-width:200px;min-width:0" onchange="S.ctSort=this.value;render()" title="Sắp xếp chương trình">${[['moi','Mới nhất lên trên'],['cu','Cũ nhất lên trên'],['bd','Ngày bắt đầu gần nhất'],['ten','Tên A → Z']].map(o => `<option value="${o[0]}" ${k===o[0]?'selected':''}>${o[1]}</option>`).join('')}</select>`; }
+// ---- Vương miện xếp hạng
+function crown(h){ const c = { 1: ['#f7c948', '#c99a06'], 2: ['#dfe5ee', '#8e9aad'], 3: ['#e7a76c', '#a8612a'] }[h]; return c ? `<svg class="crown" viewBox="0 0 24 24" aria-label="Hạng ${h}"><path d="M3 8l4.5 4L12 4l4.5 8L21 8l-2 11H5z" fill="${c[0]}" stroke="${c[1]}" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="14.5" r="1.6" fill="${c[1]}"/></svg>` : ''; }
+// ---- Xem như thành viên (chỉ Quản lý)
+async function viewAs(u){
+  if(!u) return;
+  const real = S.boot;
+  try{ const d = await api('viewAs', { username: u }); S.realBoot = real; S.viewAs = u; S.boot = d; S.cat = null; S.catU = ''; go('viec'); }
+  catch(e){ toast(e.message, 'err'); render(); }
+}
+function exitViewAs(){ S.viewAs = null; S.boot = S.realBoot || S.boot; S.realBoot = null; S.cat = null; render(); load(true); }
+// ---- Xóa chương trình (chỉ Quản lý)
+function delProg(id){
+  const b = B(), p = prog(id), ts = b.tasks.filter(t => t.ct_id === id), ids = new Set(ts.map(t => t.id));
+  const pcs = (b.assignments || []).filter(x => ids.has(x.cv_id)), cham = pcs.filter(x => x.trang_thai === 'DaDuyet').length, hop = b.meetings.filter(m => m.ct_id === id).length;
+  modal('Xóa chương trình', `<div class="warnbox"><b>⚠️ Bạn sắp xóa vĩnh viễn chương trình "${esc(p.ten)}"</b><br>Thao tác này không thể hoàn tác. Sẽ bị xóa cùng lúc:
+    <ul><li>${ts.length} công việc</li><li>${pcs.length} lượt phân công${cham ? `, trong đó <b>${cham} lượt đã chấm điểm</b> (điểm này sẽ mất khỏi tổng điểm của thành viên)` : ''}</li><li>${hop} buổi họp của chương trình</li></ul>
+    Chỉ nên xóa khi chương trình được tạo nhầm. Chương trình đã làm xong thì dùng <b>Sửa → Đã đóng</b> để giữ lại điểm.</div>
+    <label class="f"><input type="checkbox" id="dpc"> Tôi hiểu và muốn xóa chương trình này</label>
+    <div class="actions"><button class="btn bad" onclick="if(!$('#dpc').checked){toast('Tick ô xác nhận trước khi xóa','err');return;} closeModal(); act('deleteProgram',{id:'${id}'},{msg:'Đã xóa chương trình'})">Xóa vĩnh viễn</button><button class="btn" onclick="closeModal()">Hủy</button></div>`);
+}
 const ATT = { CoMat: 'Có mặt', VangCoPhep: 'Vắng có phép', Vang: 'Vắng' };
 
 // ======================= TIỆN ÍCH =======================
@@ -344,6 +396,7 @@ const canReview = t => !!t && (canEditCt(t.ct_id) || splitU(t.nguoi_kiem_tra).in
 
 // ======================= API ============================
 async function api(action, data, retried){
+  if(S.viewAs && !['viewAs','summary'].includes(action)) throw new Error('Đang xem góc nhìn thành viên (chỉ xem). Bấm "Thoát chế độ xem" để thao tác.');
   busy(true);
   try{
     const r = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action, token: S.token, data: data || {} }) });
@@ -377,10 +430,10 @@ async function act(action, data, opt){
   }
 }
 // Lưu dữ liệu lần trước để lần mở sau hiện ngay, rồi cập nhật ngầm
-function saveBoot(){ LS.set('sachiu_boot', S.boot && S.token ? JSON.stringify({ t: S.token, b: S.boot }) : null); }
+function saveBoot(){ if(S.viewAs) return; LS.set('sachiu_boot', S.boot && S.token ? JSON.stringify({ t: S.token, b: S.boot }) : null); }
 async function load(silent){
   try{
-    const d = await api('bootstrap'); S.boot = d; S.lastLoad = Date.now(); saveBoot();
+    const d = S.viewAs ? await api('viewAs', { username: S.viewAs }) : await api('bootstrap'); S.boot = d; S.lastLoad = Date.now(); saveBoot();
     // Đang gõ dở trong ô thì chờ rời ô rồi mới vẽ lại, tránh mất chữ
     if(silent && document.activeElement && document.activeElement.matches('input,textarea,select')) S.pendingRender = true; else render();
   }
@@ -435,6 +488,7 @@ function renderChangePw(first){
   };
 }
 async function logout(silent){
+  if(S.viewAs){ S.viewAs = null; S.boot = S.realBoot; }
   if(!silent){ try{ await api('logout'); }catch(e){} }
   S.token = null; S.boot = null; LS.set('sachiu_token', null); LS.set('sachiu_boot', null); renderLogin();
 }
@@ -461,12 +515,13 @@ function render(){
   <div class="top">
     <div class="brand"><span class="logo">S</span>SACHIU <small>Quản lý TNV</small></div><div class="ptitle">${esc((ts.find(t => t[0] === S.tab) || [])[1] || '')}</div><div class="sp"></div>
     <div class="who">${esc(b.me.ho_ten)}<br><small>${ROLE[b.me.vai_tro]||''}</small></div>
+    ${isQL() && !S.viewAs ? `<select class="i vas" onchange="viewAs(this.value)" title="Xem hệ thống dưới góc nhìn của một thành viên"><option value="">👁 Xem như thành viên…</option>${b.users.filter(u => u.vai_tro !== 'QL' && u.trang_thai !== 'Khoa').sort((x, y) => x.ho_ten.localeCompare(y.ho_ten, 'vi')).map(u => `<option value="${esc(u.username)}">${esc(u.ho_ten)}</option>`).join('')}</select>` : ''}
     <button title="Tải lại" onclick="load()">⟳</button>
     <button title="Đổi mật khẩu" onclick="S.pwOld='';renderChangePw(false)">🔑</button>
     <button title="Đăng xuất" onclick="logout()">Thoát</button>
   </div>
   <nav class="tabs"><div class="sbrand"><span class="logo">S</span><div><b>SACHIU</b><span>Quản lý TNV</span></div></div>${ts.map(t => `<button class="tab ${S.tab===t[0]?'on':''}" onclick="go('${t[0]}')">${ICON[t[0]]||''}<span>${t[1]}</span>${c[t[0]]?`<span class="n">${c[t[0]]}</span>`:''}</button>`).join('')}<div class="sfoot"><b>${esc(b.me.ho_ten)}</b>${ROLE[b.me.vai_tro]||''}</div></nav>
-  <main id="main" class="${S.tab==='cho'?'wide':''}">${view()}</main>`;
+  <main id="main" class="${S.tab==='cho'?'wide':''}">${S.viewAs ? `<div class="vbar"><span>👁 Đang xem góc nhìn của <b>${esc(b.me.ho_ten)}</b> (${ROLE[b.me.vai_tro]||''}) – chỉ xem, không thao tác được.</span><button class="btn sm pri" onclick="exitViewAs()">Thoát chế độ xem</button></div>` : ''}${view()}</main>`;
   afterRender();
 }
 function go(t){ S.tab = t; LS.set('sachiu_tab', t); render(); window.scrollTo(0,0); if(Date.now() - S.lastLoad > 10000) load(true); }
@@ -547,15 +602,21 @@ function marketTasks(){
 }
 function vCatalog(){
   const b = B();
-  const progs = b.programs.slice().sort((a, c) => (a.trang_thai==='DaDong') - (c.trang_thai==='DaDong'));
+  const progs = sortProgs(b.programs);
   if(!progs.length) return '<div class="empty">Chưa có chương trình nào.</div>';
-  if(!S.cat || !progs.some(p => p.id === S.cat)) S.cat = progs[0].id;
+  if(!S.cat || !progs.some(p => p.id === S.cat)){
+    // Ưu tiên chương trình đang có việc của tôi chưa xong
+    const myOpen = new Set(b.mine.filter(p => p.trang_thai !== 'DaDuyet').map(p => (task(p.cv_id) || {}).ct_id));
+    S.cat = (progs.find(p => myOpen.has(p.id)) || progs.find(p => progState(p) !== 'xong') || progs[0]).id;
+  }
   const ct = prog(S.cat), edit = canEditCt(S.cat), me = b.me.username;
   const open = id => b.tasks.filter(t => t.ct_id === id && t.trang_thai === 'Mo' && t.so_nhan < (num(t.so_nguoi)||1)).length;
   let tasks = b.tasks.filter(t => t.ct_id === S.cat);
   const mineBy = {}; b.mine.forEach(p => mineBy[p.cv_id] = p);
   if(S.catF === 'trong') tasks = tasks.filter(t => t.trang_thai === 'Mo' && t.so_nhan < (num(t.so_nguoi)||1));
   if(S.catF === 'toi') tasks = tasks.filter(t => mineBy[t.id]);
+  if(S.catU) tasks = tasks.filter(t => (b.assignments||[]).some(p => p.cv_id === t.id && p.username === S.catU));
+  tasks = tasks.slice().sort((x, y) => !!mineBy[y.id] - !!mineBy[x.id]);   // việc của tôi lên đầu
   const gk = t => (S.grp === 'nhom' ? t.nhom : t.giai_doan) || '';
   const groups = [...new Set(tasks.map(gk))];
   const inp = (t, f, type, val) => `<input class="ce" type="${type}" data-cv="${t.id}" data-f="${f}" value="${esc(val)}"${type==='number'?' step="0.5" min="0"':''}>`;
@@ -583,11 +644,18 @@ function vCatalog(){
       <td${my?'':' class="ro"'}>${links}</td></tr>`;
   };
   return `
-  <div class="chips">${progs.map(p => `<button class="chip ${S.cat===p.id?'on':''}" onclick="S.cat='${p.id}';render()">${esc(p.ten)}${p.trang_thai==='DaDong'?' (đã đóng)':''}${open(p.id)?` <span class="tab"><span class="n">${open(p.id)}</span></span>`:''}</button>`).join('')}</div>
+  <div class="psel">
+    ${psBadge(ct)}
+    <div class="toolbar">
+      <select class="i" style="flex:2" onchange="S.cat=this.value;render()">${progs.map(p => `<option value="${p.id}" ${S.cat===p.id?'selected':''}>${PS[progState(p)][2]} ${esc(p.ten)}${open(p.id)?` · còn ${open(p.id)} việc trống`:''}</option>`).join('')}</select>
+      ${sortSel()}
+    </div>
+  </div>
   ${(() => { const all = b.tasks.filter(t => t.ct_id === S.cat).map(t => taskState(t).st), k = x => all.filter(v => v === x).length;
     return `<div class="stats">${statCard('s-pri', 'Tổng công việc', all.length, 'list')}${statCard('s-pri', 'Đang làm', k('dang'), 'run')}${statCard('s-warn', 'Chờ duyệt', k('cho'), 'wait')}${statCard('s-ok', 'Hoàn thành', k('xong'), 'done')}${k('tre') ? statCard('s-bad', 'Quá hạn', k('tre'), 'late') : ''}</div>`; })()}
   <div class="toolbar">
     <div class="small" style="flex:1">Người kiểm tra: <b>${splitU(ct.nguoi_kiem_tra).map(u => esc(uName(u))).join(', ') || 'chưa giao'}</b>${edit ? ' · Bạn được sửa trực tiếp các ô (tự lưu).' : ' · Bạn sửa được Tiến độ và Link ở dòng của mình (tự lưu).'}</div>
+    ${isKT() ? `<select class="i" style="max-width:190px;min-width:0" onchange="S.catU=this.value;render()"><option value="">Tất cả thành viên</option>${b.users.filter(u => u.vai_tro !== 'QL').sort((x, y) => x.ho_ten.localeCompare(y.ho_ten, 'vi')).map(u => `<option value="${esc(u.username)}" ${S.catU===u.username?'selected':''}>${esc(u.ho_ten)}</option>`).join('')}</select>` : ''}
     <select class="i" style="max-width:170px;min-width:0" onchange="S.catF=this.value;render()"><option value="">Tất cả việc</option><option value="trong" ${S.catF==='trong'?'selected':''}>Còn trống người</option><option value="toi" ${S.catF==='toi'?'selected':''}>Việc của tôi</option></select>
     ${grpSel()}
     ${edit ? `<button class="btn pri" onclick="addRow()">+ Thêm dòng</button>` : ''}
@@ -738,7 +806,7 @@ function vProgress(){
   if(b.summaryMe) html += `<div class="card">${personDetail(b.summaryMe)}</div>`;
   if(isKT()) html += vTeam();
   else if(b.ranking){
-    html += `<h3>Bảng xếp hạng</h3><div class="tw"><table><tr><th>#</th><th>Họ tên</th><th class="num">Điểm</th></tr>${b.ranking.map(r => `<tr class="${r.ho_ten===b.me.ho_ten?'me':''}"><td>${r.hang}</td><td>${esc(r.ho_ten)}</td><td class="num">${r.tong}</td></tr>`).join('')}</table></div>`;
+    html += `<h3>Bảng xếp hạng</h3><div class="tw"><table><tr><th>#</th><th>Họ tên</th><th class="num">Điểm</th></tr>${b.ranking.map(r => `<tr class="${r.ho_ten===b.me.ho_ten?'me':''}"><td class="rk">${crown(r.hang)}${r.hang}</td><td>${r.hang<=3?`<b>${esc(r.ho_ten)}</b>`:esc(r.ho_ten)}</td><td class="num">${r.tong}</td></tr>`).join('')}</table></div>`;
   }
   if(!b.summaryMe && !isKT()) html += '<div class="empty">Chưa có dữ liệu.</div>';
   return html;
@@ -759,7 +827,7 @@ function vTeam(){
   <div class="tw"><table>
     <tr><th>#</th><th>Họ tên</th><th class="num">Tổng</th><th class="num">Việc</th><th class="num">Họp</th><th class="num">Bài TT</th><th class="num">BTC max</th><th class="num">Chuyên cần</th><th class="num">Trễ</th><th class="num">Chờ duyệt</th><th>Kết quả</th></tr>
     ${list.map(s => `<tr class="click" onclick="showPerson('${esc(s.username)}')">
-      <td>${s.hang}</td><td>${esc(s.ho_ten)}</td><td class="num"><b>${s.tong}</b></td><td class="num">${s.diem_viec}</td><td class="num">${s.diem_hop}</td>
+      <td class="rk">${crown(s.hang)}${s.hang}</td><td>${s.hang<=3?`<b>${esc(s.ho_ten)}</b>`:esc(s.ho_ten)}${s.vai_tro==='KT'?' <span class="small">· kiểm tra</span>':''}</td><td class="num"><b>${s.tong}</b></td><td class="num">${s.diem_viec}</td><td class="num">${s.diem_hop}</td>
       <td class="num">${s.bai_tt}/${c.NGUONG_BAI_TT}</td><td class="num">${s.btc_max}</td><td class="num">${s.chuyen_can===null?'—':s.chuyen_can+'%'}</td>
       <td class="num">${s.tre?`<span class="badge ${s.tre>=2?'b-bad':'b-warn'}">${s.tre}</span>`:0}</td><td class="num">${s.cho_duyet||''}</td><td>${kqBadge(s.ket_qua)}</td></tr>`).join('')}
   </table></div>
@@ -947,11 +1015,11 @@ function saveBulk(){
 function vPrograms(){
   const b = B();
   return `${isQL()?`<div class="toolbar"><button class="btn pri" onclick="progForm()">+ Tạo chương trình</button></div>`:''}
-  ${b.programs.length ? b.programs.slice().reverse().map(p => {
+  ${b.programs.length ? `<div class="toolbar">${sortSel()}</div>` + sortProgs(b.programs).map(p => {
     const ts = b.tasks.filter(t => t.ct_id === p.id);
-    return `<div class="card"><div class="row sb"><span class="title">${esc(p.ten)}</span><span class="badge ${p.trang_thai==='DaDong'?'':'b-ok'}">${p.trang_thai==='DaDong'?'Đã đóng':'Đang chạy'}</span></div>
+    return `<div class="card"><div class="row sb"><span class="title">${esc(p.ten)}</span><span>${p.trang_thai==='DaDong'?'<span class="badge">Đã đóng</span> ':''}${psBadge(p)}</span></div>
     <div class="meta"><span>${esc(p.hoc_ky)}</span>${p.bat_dau?`<span>${fmtDay(p.bat_dau)}${p.ket_thuc?' → '+fmtDay(p.ket_thuc):''}</span>`:''}<span>${ts.length} việc</span>${p.nguoi_kiem_tra?`<span>Kiểm tra: ${splitU(p.nguoi_kiem_tra).map(u=>esc(uName(u))).join(', ')}</span>`:''}${p.host?`<span>Host: ${String(p.host).split(',').map(u=>esc(uName(u.trim()))).join(', ')}</span>`:''}${p.diem_hai_long!==''&&p.diem_hai_long!=null?`<span>Hài lòng: ${p.diem_hai_long}/5</span>`:''}</div>
-    ${isQL()?`<div class="actions"><button class="btn sm" onclick="progForm('${p.id}')">Sửa</button><button class="btn sm" onclick="cloneProg('${p.id}')">Nhân bản làm mẫu</button><button class="btn sm" onclick="S.qlCt='${p.id}';S.qlSub='viec';render()">Xem công việc</button></div>`:''}</div>`; }).join('') : '<div class="empty">Chưa có chương trình.</div>'}`;
+    ${isQL()?`<div class="actions"><button class="btn sm" onclick="progForm('${p.id}')">Sửa</button><button class="btn sm" onclick="cloneProg('${p.id}')">Nhân bản làm mẫu</button><button class="btn sm" onclick="S.qlCt='${p.id}';S.qlSub='viec';render()">Xem công việc</button><span style="flex:1"></span><button class="btn sm bad" onclick="delProg('${p.id}')">Xóa</button></div>`:''}</div>`; }).join('') : '<div class="empty">Chưa có chương trình.</div>'}`;
 }
 function progForm(id){
   const b = B(), p = id ? prog(id) : { hoc_ky: b.hocKy, trang_thai: 'DangChay' };
@@ -990,7 +1058,7 @@ function vUsers(){
   const us = B().users.slice().sort((a, b) => (b.vai_tro==='QL') - (a.vai_tro==='QL') || a.ho_ten.localeCompare(b.ho_ten, 'vi'));
   return `<div class="toolbar"><button class="btn pri" onclick="userForm()">+ Tạo tài khoản</button><span class="small">Tạo hàng loạt: dùng mục "Import file cũ" với sheet Thông tin TNV.</span></div>
   <div class="tw"><table><tr><th>Họ tên</th><th>Tên đăng nhập</th><th>Vai trò</th><th>Email</th><th>Trạng thái</th><th></th></tr>
-  ${us.map(u => `<tr><td>${esc(u.ho_ten)}<div class="small">${esc([u.khoa,u.lop].filter(Boolean).join(' · '))}</div></td><td>${esc(u.username)}</td><td>${ROLE[u.vai_tro]}</td><td class="small">${esc(u.email||'')}</td>
+  ${us.map(u => `<tr><td>${esc(u.ho_ten)}<div class="small">${esc([u.khoa,u.lop].filter(Boolean).join(' · '))}</div></td><td>${esc(u.username)}</td><td>${ROLE[u.vai_tro]}${u.vai_tro==='KT'?' <span class="small">(tạm)</span>':''}</td><td class="small">${esc(u.email||'')}</td>
     <td>${u.trang_thai==='Khoa'?'<span class="badge b-bad">Đã khóa</span>':u.doi_mk?'<span class="badge b-warn">Chưa đổi MK</span>':'<span class="badge b-ok">Hoạt động</span>'}</td>
     <td class="right" style="white-space:nowrap"><button class="btn sm" onclick="userForm('${esc(u.username)}')">Sửa</button> <button class="btn sm" onclick="resetPw('${esc(u.username)}')">Cấp lại MK</button></td></tr>`).join('')}
   </table></div>`;
@@ -1001,7 +1069,7 @@ function userForm(un){
     <div class="grid2">
       <div><label class="f">Tên đăng nhập (MSSV)</label><input class="i" id="uu" value="${esc(u.username||'')}" ${un?'disabled':''}></div>
       <div><label class="f">Họ và tên</label><input class="i" id="uh" value="${esc(u.ho_ten||'')}"></div>
-      <div><label class="f">Vai trò</label><select class="i" id="ur">${Object.keys(ROLE).map(k => `<option value="${k}" ${u.vai_tro===k?'selected':''}>${ROLE[k]}</option>`).join('')}</select></div>
+      <div><label class="f">Vai trò</label><select class="i" id="ur">${['TNV','QL'].map(k => `<option value="${k}" ${(u.vai_tro_goc||u.vai_tro)===k?'selected':''}>${ROLE[k]}</option>`).join('')}</select><div class="small">Người kiểm tra là vai trò tạm, gán theo từng chương trình.</div></div>
       <div><label class="f">Trạng thái</label><select class="i" id="ut"><option value="HoatDong">Hoạt động</option><option value="Khoa" ${u.trang_thai==='Khoa'?'selected':''}>Khóa</option></select></div>
       <div><label class="f">Email (nhận nhắc việc)</label><input class="i" id="ue" type="email" value="${esc(u.email||'')}"></div>
       <div><label class="f">Số điện thoại</label><input class="i" id="us" value="${esc(u.sdt||'')}"></div>
